@@ -1,7 +1,7 @@
-import { cookieStorage, createStorage } from "wagmi";
-import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { cookieStorage, createStorage, createConfig, http } from "wagmi";
 import { mainnet, sepolia } from "wagmi/chains";
 import { defineChain } from "viem";
+import { injected } from "wagmi/connectors";
 
 export const hardhatLocal = defineChain({
   id: 31337,
@@ -13,10 +13,14 @@ export const hardhatLocal = defineChain({
 });
 
 export function getConfig() {
-  return getDefaultConfig({
-    appName: "DeFi AMM",
-    projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || "demo",
+  return createConfig({
     chains: [hardhatLocal, mainnet, sepolia],
+    connectors: [injected()],
+    transports: {
+      [hardhatLocal.id]: http(),
+      [mainnet.id]: http(),
+      [sepolia.id]: http(),
+    },
     ssr: true,
     storage: createStorage({ storage: cookieStorage }),
   });
