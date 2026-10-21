@@ -1,0 +1,64 @@
+:root {
+  --pf-card-bg: #ffffff;
+  --pf-card-border: rgba(0, 0, 0, 0.03);
+  --pf-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --pf-input-bg: #f7f9fc;
+  --pf-input-border: #e2e8f0;
+  --pf-input-bg-focus: #ffffff;
+}
+
+.dark {
+  --pf-card-bg: #1c1f26;
+  --pf-card-border: #2d3139;
+  --pf-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+  --pf-input-bg: #1e212b;
+  --pf-input-border: #3a3f50;
+  --pf-input-bg-focus: #272a33;
+}
+
+.app-card {
+  background: var(--pf-card-bg);
+  border-radius: 16px;
+  box-shadow: var(--pf-card-shadow);
+  border: 1px solid var(--pf-card-border);
+}
+
+.btn-paypal { background-color: #0070ba; color: #ffffff; border-radius: 12px; font-weight: 600; transition: background-color 0.2s; }
+.btn-paypal:active { background-color: #005ea6; }
+.btn-paypal-yellow { background-color: #ffc439; color: #003087; border-radius: 12px; font-weight: 600; transition: background-color 0.2s; }
+.btn-paypal-yellow:active { background-color: #f0b429; }
+.btn-tng { background-color: #0057b8; color: #ffffff; border-radius: 12px; font-weight: 600; transition: background-color 0.2s; }
+.btn-tng:active { background-color: #004a9c; }
+
+.app-input {
+  background-color: var(--pf-input-bg);
+  border: 1px solid var(--pf-input-border);
+  border-radius: 12px;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.app-input:focus-within { border-color: #0070ba; background-color: var(--pf-input-bg-focus); }
+
+.asset-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+}
+.asset-icon.eth { background-color: #627eea; }
+.asset-icon.usdc { background-color: #2775ca; }
+.asset-icon.wbtc { background-color: #f7931a; }
+.asset-icon.dai { background-color: #f5ac37; }
+.asset-icon.paypal { background-color: #003087; font-family: serif; font-size: 16px; }
+
+.nav-item { color: #94a3b8; transition: color 0.2s; }
+.nav-item.active { color: #0070ba; }
+.nav-item.active svg { stroke: #0070ba; }
+
+.tabular { font-variant-numeric: tabular-nums; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

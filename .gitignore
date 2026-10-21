@@ -1,0 +1,33 @@
+# ─── Dependencies ───
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Env files (never commit secrets) ───
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ─── Hardhat ───
+artifacts/
+cache/
+coverage/
+coverage.json
+typechain-types/
+ignition/deployments/
+
+# ─── Next.js ───
+frontend/.next/
+frontend/out/
+frontend/.vercel
+frontend/next-env.d.ts
+*.tsbuildinfo
+frontend/next.config.ts.timestamp-*
+
+# ─── Editor / OS ───
+.DS_Store
+.vscode/
+.idea/
+*.log
+npm-debug.log*
