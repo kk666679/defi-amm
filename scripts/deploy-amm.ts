@@ -1,6 +1,23 @@
+import { readFile, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { network } from "hardhat";
 
 const { ethers } = await network.create("localhost");
+
+async function saveFrontendAddresses(addresses: Record<string, string>) {
+  const envPath = resolve("frontend/.env.local");
+  const existing = await readFile(envPath, "utf8").catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") return "";
+    throw error;
+  });
+  const keys = Object.keys(addresses);
+  const preserved = existing
+    .split(/\r?\n/)
+    .filter((line) => !keys.some((key) => line.startsWith(`${key}=`)));
+  const next = [...preserved.filter(Boolean), ...keys.map((key) => `${key}=${addresses[key]}`)].join("\n");
+  await writeFile(envPath, `${next}\n`, "utf8");
+  console.log("Saved local contract addresses to frontend/.env.local (other existing values preserved).");
+}
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -27,6 +44,12 @@ async function main() {
   await (await tokenB.approve(await amm.getAddress(), amt)).wait();
   await (await amm.addLiquidity(amt, amt)).wait();
   console.log("Liquidity added: 10,000 / 10,000");
+
+  await saveFrontendAddresses({
+    NEXT_PUBLIC_AMM_ADDRESS: await amm.getAddress(),
+    NEXT_PUBLIC_TOKEN_A_ADDRESS: await tokenA.getAddress(),
+    NEXT_PUBLIC_TOKEN_B_ADDRESS: await tokenB.getAddress(),
+  });
 }
 
 main().catch((e) => {

@@ -2,5 +2,11 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { Counter } from './Counter.js';
+export type { SimpleAMM } from './SimpleAMM.js';
+export type { TokenA } from './TokenA.js';
+export type { TokenB } from './TokenB.js';
 export * as factories from './factories/index.js';
 export { Counter__factory } from './factories/Counter__factory.js';
+export { SimpleAMM__factory } from './factories/SimpleAMM__factory.js';
+export { TokenA__factory } from './factories/TokenA__factory.js';
+export { TokenB__factory } from './factories/TokenB__factory.js';

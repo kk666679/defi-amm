@@ -11,12 +11,24 @@ import * as Contracts from "./index.js";
 declare module "@nomicfoundation/hardhat-ethers/types" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
   getContractFactory(name: 'Counter', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.Counter__factory>
+getContractFactory(name: 'SimpleAMM', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.SimpleAMM__factory>
+getContractFactory(name: 'TokenA', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.TokenA__factory>
+getContractFactory(name: 'TokenB', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.TokenB__factory>
 
   getContractAt(name: 'Counter', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.Counter>
+getContractAt(name: 'SimpleAMM', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.SimpleAMM>
+getContractAt(name: 'TokenA', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.TokenA>
+getContractAt(name: 'TokenB', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.TokenB>
 
   deployContract(name: 'Counter', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Counter>
+deployContract(name: 'SimpleAMM', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.SimpleAMM>
+deployContract(name: 'TokenA', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.TokenA>
+deployContract(name: 'TokenB', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.TokenB>
 
   deployContract(name: 'Counter', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.Counter>
+deployContract(name: 'SimpleAMM', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.SimpleAMM>
+deployContract(name: 'TokenA', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.TokenA>
+deployContract(name: 'TokenB', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.TokenB>
 
     // default types
     getContractFactory(

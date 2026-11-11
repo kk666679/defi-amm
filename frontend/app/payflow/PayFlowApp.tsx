@@ -4,8 +4,9 @@ import { useCallback, useState } from "react";
 import HomePage from "./components/HomePage";
 import SwapPage from "./components/SwapPage";
 import PoolsPage from "./components/PoolsPage";
-import { BellIcon, SettingsIcon, HomeIcon, SwapIcon, EarnIcon } from "./icons";
+import { HomeIcon, SwapIcon, EarnIcon } from "./icons"
 import type { PageId } from "./types";
+import { WalletBar } from "@/components/WalletBar";
 
 export default function PayFlowApp() {
   const [page, setPage] = useState<PageId>("home");
@@ -34,7 +35,7 @@ function Header({ onLogoClick }: { onLogoClick: () => void }) {
   return (
     <header className="bg-gb-header border-b border-gb-border sticky top-0 z-30">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={onLogoClick}>
+        <button type="button" className="flex items-center gap-3 text-left" onClick={onLogoClick} aria-label="Go to PayFlow balance home">
           <div className="w-8 h-8 rounded-full bg-brand-darkBlue flex items-center justify-center text-white font-bold text-sm relative">
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 7h16M4 12h10M4 17h6" />
@@ -43,16 +44,11 @@ function Header({ onLogoClick }: { onLogoClick: () => void }) {
           </div>
           <div>
             <div className="text-[11px] text-gb-muted font-medium">Hello,</div>
-            <div className="text-[14px] font-bold text-gb-text leading-tight">Ahmad</div>
+            <div className="text-[14px] font-bold text-gb-text leading-tight">PayFlow</div>
           </div>
-        </div>
+        </button>
         <div className="flex items-center gap-2">
-          <button className="w-9 h-9 rounded-full bg-gb-code flex items-center justify-center text-gb-muted hover:text-brand-blue transition">
-            <BellIcon />
-          </button>
-          <button className="w-9 h-9 rounded-full bg-gb-code flex items-center justify-center text-gb-muted hover:text-brand-blue transition">
-            <SettingsIcon />
-          </button>
+          <WalletBar />
         </div>
       </div>
     </header>
@@ -65,10 +61,6 @@ function BottomNav({ active, onNavigate }: { active: PageId; onNavigate: (p: Pag
       <NavItem id="home" label="Home" active={active === "home"} onNavigate={onNavigate}><HomeIcon /></NavItem>
       <NavItem id="swap" label="Swap" active={active === "swap"} onNavigate={onNavigate}><SwapIcon /></NavItem>
       <NavItem id="pools" label="Earn" active={active === "pools"} onNavigate={onNavigate}><EarnIcon /></NavItem>
-      <button className="nav-item flex flex-col items-center gap-1 w-16">
-        <SettingsIcon />
-        <span className="text-[10px] font-medium">Account</span>
-      </button>
     </nav>
   );
 }

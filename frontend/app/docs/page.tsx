@@ -28,8 +28,8 @@ export default function AppKitOverviewPage() {
 
       <h3 className="text-lg font-semibold text-foreground mb-3 mt-8">2. Configure your App</h3>
       <div className="bg-muted p-4 rounded-xl border border-border font-mono text-sm text-foreground overflow-x-auto mb-6">
-        <span className="text-primary">import</span> {'{'} createConfig {'}'} <span className="text-primary">from</span> <span className="text-emerald-500">'@wagmi/core'</span>;<br/>
-        <span className="text-primary">import</span> {'{'} mainnet {'}'} <span className="text-primary">from</span> <span className="text-emerald-500">'viem/chains'</span>;<br/><br/>
+        <span className="text-primary">import</span> {'{'} createConfig {'}'} <span className="text-primary">from</span> <span className="text-emerald-500">&apos;@wagmi/core&apos;</span>;<br/>
+        <span className="text-primary">import</span> {'{'} mainnet {'}'} <span className="text-primary">from</span> <span className="text-emerald-500">&apos;viem/chains&apos;</span>;<br/><br/>
         <span className="text-primary">export const</span> config = createConfig({'{'} <br/>
         &nbsp;&nbsp;chains: [mainnet],<br/>
         &nbsp;&nbsp;transports: {'{'} [mainnet.id]: http() {'}'},<br/>

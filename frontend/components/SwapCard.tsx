@@ -1,161 +1,157 @@
 "use client";
 
 import { useState } from "react";
-import {
-  useAccount,
-  useReadContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
-import { parseEther, formatEther } from "viem";
+import { formatEther, parseEther } from "viem";
+import { useAccount, usePublicClient, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { AMM_ABI, ERC20_ABI } from "@/lib/abi";
-import { AMM_ADDRESS, TOKEN_A_ADDRESS, TOKEN_B_ADDRESS } from "@/lib/constants";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AMM_ADDRESS, CONTRACTS_CONFIGURED, HARDHAT_CHAIN_ID, TOKEN_A_ADDRESS, TOKEN_B_ADDRESS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
+const SLIPPAGE_OPTIONS = [0.1, 0.5, 1];
+
 export function SwapCard() {
-  const { address, isConnected } = useAccount();
+  const { address, chainId, isConnected } = useAccount();
+  const publicClient = usePublicClient({ chainId: HARDHAT_CHAIN_ID });
   const [amountIn, setAmountIn] = useState("");
   const [direction, setDirection] = useState<"AtoB" | "BtoA">("AtoB");
-
+  const [slippage, setSlippage] = useState(0.5);
   const tokenIn = direction === "AtoB" ? TOKEN_A_ADDRESS : TOKEN_B_ADDRESS;
-  const tokenOutSymbol = direction === "AtoB" ? "TKB" : "TKA";
   const tokenInSymbol = direction === "AtoB" ? "TKA" : "TKB";
+  const tokenOutSymbol = direction === "AtoB" ? "TKB" : "TKA";
+  const configured = CONTRACTS_CONFIGURED && Boolean(AMM_ADDRESS && tokenIn);
 
-  const { data: reserveA } = useReadContract({ address: AMM_ADDRESS, abi: AMM_ABI, functionName: "reserveA" });
-  const { data: reserveB } = useReadContract({ address: AMM_ADDRESS, abi: AMM_ABI, functionName: "reserveB" });
-  const { data: balanceIn } = useReadContract({
-    address: tokenIn,
-    abi: ERC20_ABI,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
+  const amountInWei = (() => {
+    if (!/^\d+(\.\d{0,18})?$/.test(amountIn)) return BigInt(0);
+    try {
+      return parseEther(amountIn);
+    } catch {
+      return BigInt(0);
+    }
+  })();
+
+  const { data: reserveA, isLoading: loadingReserveA, error: reserveErrorA, refetch: refetchReserveA } = useReadContract({
+    address: AMM_ADDRESS!, abi: AMM_ABI, functionName: "reserveA", query: { enabled: configured },
   });
-  const { data: allowance } = useReadContract({
-    address: tokenIn,
-    abi: ERC20_ABI,
-    functionName: "allowance",
-    args: address ? [address, AMM_ADDRESS] : undefined,
+  const { data: reserveB, isLoading: loadingReserveB, error: reserveErrorB, refetch: refetchReserveB } = useReadContract({
+    address: AMM_ADDRESS!, abi: AMM_ABI, functionName: "reserveB", query: { enabled: configured },
+  });
+  const { data: balanceIn, refetch: refetchBalance } = useReadContract({
+    address: tokenIn!, abi: ERC20_ABI, functionName: "balanceOf", args: address ? [address] : undefined,
+    query: { enabled: configured && Boolean(address) },
+  });
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: tokenIn!, abi: ERC20_ABI, functionName: "allowance", args: address && AMM_ADDRESS ? [address, AMM_ADDRESS] : undefined,
+    query: { enabled: configured && Boolean(address) },
   });
 
-  const amountInWei = amountIn ? parseEther(amountIn) : 0n;
   const reserveIn = direction === "AtoB" ? reserveA : reserveB;
   const reserveOut = direction === "AtoB" ? reserveB : reserveA;
-
-  let amountOut = 0n;
-  if (reserveIn && reserveOut && amountInWei > 0n) {
-    const inWithFee = amountInWei * 997n;
-    amountOut = (inWithFee * reserveOut) / (reserveIn * 1000n + inWithFee);
-  }
-
+  const amountOut = (() => {
+    if (reserveIn === undefined || reserveOut === undefined || reserveIn === BigInt(0) || amountInWei === BigInt(0)) return BigInt(0);
+    const inputWithFee = amountInWei * BigInt(997);
+    return (inputWithFee * reserveOut) / (reserveIn * BigInt(1000) + inputWithFee);
+  })();
+  const minimumOut = amountOut * BigInt(Math.round((100 - slippage) * 100)) / BigInt(10_000);
   const needsApproval = allowance !== undefined && amountInWei > 0n && allowance < amountInWei;
+  const insufficientBalance = balanceIn !== undefined && amountInWei > balanceIn;
 
-  const { writeContract: approve, data: approveHash, isPending: isApproving } = useWriteContract();
-  const { writeContract: swap, data: swapHash, isPending: isSwapping } = useWriteContract();
-  const { isLoading: waitingApprove } = useWaitForTransactionReceipt({ hash: approveHash });
-  const { isLoading: waitingSwap } = useWaitForTransactionReceipt({ hash: swapHash });
+  const { writeContract: approve, data: approveHash, isPending: isApproving, error: approveError } = useWriteContract();
+  const { writeContract: swap, data: swapHash, isPending: isSwapping, error: swapError } = useWriteContract();
+  const { isLoading: waitingApproval, isSuccess: approvalConfirmed, error: approvalReceiptError } = useWaitForTransactionReceipt({ hash: approveHash });
+  const { isLoading: waitingSwap, isSuccess: swapConfirmed, error: swapReceiptError } = useWaitForTransactionReceipt({ hash: swapHash });
+
+  const wrongNetwork = isConnected && chainId !== HARDHAT_CHAIN_ID;
+  const isPending = isApproving || waitingApproval || isSwapping || waitingSwap;
+  const actionError = approveError ?? approvalReceiptError ?? swapError ?? swapReceiptError ?? reserveErrorA ?? reserveErrorB;
 
   const handleFlip = () => {
-    setDirection(direction === "AtoB" ? "BtoA" : "AtoB");
+    setDirection((current) => current === "AtoB" ? "BtoA" : "AtoB");
     setAmountIn("");
   };
 
+  const handleApprove = () => {
+    if (!tokenIn || !AMM_ADDRESS || !amountInWei) return;
+    approve({ address: tokenIn, abi: ERC20_ABI, functionName: "approve", args: [AMM_ADDRESS, amountInWei] }, {
+      onSuccess: async (hash) => {
+        const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+        if (receipt?.status === "success") await refetchAllowance();
+      },
+    });
+  };
+
+  const handleSwap = () => {
+    if (!AMM_ADDRESS || !amountInWei || !minimumOut || wrongNetwork || insufficientBalance) return;
+    swap({
+      address: AMM_ADDRESS,
+      abi: AMM_ABI,
+      functionName: direction === "AtoB" ? "swapAForBMinOut" : "swapBForAMinOut",
+      args: [amountInWei, minimumOut],
+    }, {
+      onSuccess: async (hash) => {
+        const receipt = await publicClient?.waitForTransactionReceipt({ hash });
+        if (receipt?.status === "success") {
+          await Promise.all([refetchBalance(), refetchAllowance(), refetchReserveA(), refetchReserveB()]);
+        }
+      },
+    });
+  };
+
   return (
-    <Card className="w-full max-w-md shadow-xl border-border/50 bg-background/60 backdrop-blur-xl">
+    <Card className="w-full max-w-md border-border/50 bg-background/80 shadow-xl backdrop-blur-xl">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xl flex justify-between items-center">
+        <CardTitle className="flex items-center justify-between text-xl">
           <span>Swap</span>
-          <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">0.3% Fee</span>
+          <span className="rounded-full bg-muted px-2 py-1 text-xs font-normal text-muted-foreground">0.3% pool fee</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
-        
-        {/* Input Section */}
-        <div className="bg-muted/50 p-4 rounded-2xl border border-border/50 hover:border-border transition-colors">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-muted-foreground">You Pay</span>
-            <span className="text-xs text-muted-foreground">
-              Balance: {balanceIn !== undefined ? Number(formatEther(balanceIn)).toLocaleString() : "—"}
-            </span>
+      <CardContent className="flex flex-col gap-3">
+        {!configured && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">AMM contracts are not configured. Set the three NEXT_PUBLIC_* contract addresses after deploying to Hardhat.</p>}
+        {wrongNetwork && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">Switch your wallet to the local Hardhat network (chain ID {HARDHAT_CHAIN_ID}).</p>}
+        <div className="rounded-2xl border border-border/50 bg-muted/50 p-4">
+          <div className="mb-2 flex justify-between text-sm text-muted-foreground">
+            <label htmlFor="swap-amount">You pay</label>
+            <span>Balance: {balanceIn !== undefined ? Number(formatEther(balanceIn)).toLocaleString(undefined, { maximumFractionDigits: 5 }) : "—"} {tokenInSymbol}</span>
           </div>
           <div className="flex items-center gap-3">
-            <Input
-              value={amountIn}
-              onChange={(e) => setAmountIn(e.target.value)}
-              placeholder="0.0"
-              type="number"
-              className="border-none bg-transparent text-2xl font-semibold p-0 h-auto focus-visible:ring-0 shadow-none"
-            />
-            <div className="bg-background border border-border px-3 py-1.5 rounded-xl font-bold text-sm shadow-sm flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px]">
-                {tokenInSymbol[0]}
-              </div>
-              {tokenInSymbol}
-            </div>
+            <Input id="swap-amount" aria-label={`Amount of ${tokenInSymbol}`} inputMode="decimal" value={amountIn} onChange={(event) => setAmountIn(event.target.value)} placeholder="0.0" className="h-auto border-0 bg-transparent p-0 text-2xl font-semibold shadow-none focus-visible:ring-0" />
+            <span className="rounded-xl border border-border bg-background px-3 py-1.5 text-sm font-bold">{tokenInSymbol}</span>
           </div>
         </div>
-
-        {/* Flip Button */}
-        <div className="relative h-4 flex justify-center items-center -my-2 z-10">
-          <button 
-            onClick={handleFlip}
-            className="bg-background border border-border hover:bg-muted p-1.5 rounded-full shadow-sm transition-all hover:scale-110 active:scale-95"
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4 text-foreground" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-            </svg>
-          </button>
+        <div className="-my-2 flex justify-center">
+          <Button type="button" variant="outline" size="icon" aria-label="Reverse token direction" onClick={handleFlip} className="rounded-full">↕</Button>
         </div>
-
-        {/* Output Section */}
-        <div className="bg-muted/50 p-4 rounded-2xl border border-border/50">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-muted-foreground">You Receive</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <p className="text-2xl font-semibold text-foreground flex-1 truncate">
-              {amountOut > 0n ? Number(formatEther(amountOut)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : "0.0"}
-            </p>
-            <div className="bg-background border border-border px-3 py-1.5 rounded-xl font-bold text-sm shadow-sm flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px]">
-                {tokenOutSymbol[0]}
-              </div>
-              {tokenOutSymbol}
-            </div>
-          </div>
+        <div className="rounded-2xl border border-border/50 bg-muted/50 p-4">
+          <div className="mb-2 flex justify-between text-sm text-muted-foreground"><span>You receive</span><span>{tokenOutSymbol}</span></div>
+          <p aria-live="polite" className="truncate text-2xl font-semibold">
+            {amountOut > 0n ? Number(formatEther(amountOut)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : "0.0"}
+          </p>
         </div>
-
-        {/* Action Button */}
-        <div className="pt-2">
-          {!isConnected ? (
-            <div className="p-3 bg-destructive/10 text-destructive text-sm text-center rounded-xl font-medium border border-destructive/20">
-              Please connect your wallet to swap
-            </div>
-          ) : needsApproval ? (
-            <Button
-              onClick={() => approve({ address: tokenIn, abi: ERC20_ABI, functionName: "approve", args: [AMM_ADDRESS, amountInWei] })}
-              disabled={isApproving || waitingApprove}
-              className="w-full py-6 text-base font-semibold rounded-xl"
-            >
-              {isApproving || waitingApprove ? "Approving..." : `Approve ${tokenInSymbol}`}
-            </Button>
-          ) : (
-            <Button
-              onClick={() => swap({ address: AMM_ADDRESS, abi: AMM_ABI, functionName: direction === "AtoB" ? "swapAForB" : "swapBForA", args: [amountInWei] })}
-              disabled={!amountIn || isSwapping || waitingSwap}
-              className="w-full py-6 text-base font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
-            >
-              {isSwapping || waitingSwap ? "Confirming..." : "Swap"}
-            </Button>
-          )}
+        <label className="flex items-center justify-between gap-4 text-sm text-muted-foreground" htmlFor="slippage">
+          <span>Slippage tolerance</span>
+          <select id="slippage" value={slippage} onChange={(event) => setSlippage(Number(event.target.value))} className="rounded-lg border border-border bg-background px-2 py-1 text-foreground">
+            {SLIPPAGE_OPTIONS.map((value) => <option key={value} value={value}>{value}%</option>)}
+          </select>
+        </label>
+        <p className="text-xs text-muted-foreground">Minimum received: {minimumOut > 0n ? Number(formatEther(minimumOut)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : "0"} {tokenOutSymbol}</p>
+        {isConnected ? needsApproval ? (
+          <Button onClick={handleApprove} disabled={!configured || wrongNetwork || isPending || insufficientBalance} className="w-full">
+            {isPending ? "Waiting for approval…" : `Approve ${tokenInSymbol}`}
+          </Button>
+        ) : (
+          <Button onClick={handleSwap} disabled={!configured || wrongNetwork || isPending || !amountInWei || !amountOut || insufficientBalance || allowance === undefined} className="w-full">
+            {isPending ? "Waiting for confirmation…" : insufficientBalance ? "Insufficient balance" : "Swap"}
+          </Button>
+        ) : <p className="rounded-xl border border-border p-3 text-center text-sm text-muted-foreground">Connect an injected wallet to trade.</p>}
+        {insufficientBalance && <p role="alert" className="text-sm text-destructive">Amount exceeds your {tokenInSymbol} balance.</p>}
+        {actionError && <p role="alert" className="break-words text-sm text-destructive">Transaction failed: {actionError.message}</p>}
+        {approvalConfirmed && <p role="status" className="text-sm text-muted-foreground">Approval confirmed. You can submit the swap.</p>}
+        {swapConfirmed && <p role="status" className="text-sm text-green-700 dark:text-green-400">Swap transaction confirmed.</p>}
+        <div className="flex flex-wrap justify-between gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
+          <span>{loadingReserveA || loadingReserveB ? "Loading reserves…" : `Pool TKA: ${reserveA !== undefined ? Number(formatEther(reserveA)).toLocaleString() : "—"}`}</span>
+          <span>Pool TKB: {reserveB !== undefined ? Number(formatEther(reserveB)).toLocaleString() : "—"}</span>
         </div>
-
-        {/* Reserves Footer */}
-        <div className="pt-4 pb-2 flex justify-between text-xs text-muted-foreground/80 font-medium">
-          <span>Pool TKA: {reserveA ? Number(formatEther(reserveA)).toLocaleString() : "—"}</span>
-          <span>Pool TKB: {reserveB ? Number(formatEther(reserveB)).toLocaleString() : "—"}</span>
-        </div>
-
       </CardContent>
     </Card>
   );
