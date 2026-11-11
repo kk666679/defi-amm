@@ -7,6 +7,7 @@ import {
   SEPOLIA_CHAIN_ID,
   isSupportedTradeChain,
 } from "@/lib/constants";
+import { isWalletProviderMissing } from "@/lib/wallet-errors";
 import {
   Select,
   SelectContent,
@@ -23,6 +24,8 @@ export function WalletBar() {
   const { switchChain, error: switchError, isPending: isSwitching } = useSwitchChain();
   const selectedNetwork = chainId && isSupportedTradeChain(chainId) ? String(chainId) : "";
   const injectedConnector = connectors.find((connector) => connector.id === "injected");
+  const providerMissing = isWalletProviderMissing(connectError ?? switchError);
+  const openPreviewInNewTab = () => window.open(window.location.href, "_blank", "noopener,noreferrer");
 
   const handleNetworkChange = (value: string | null) => {
     if (!value) return;
@@ -62,9 +65,18 @@ export function WalletBar() {
         </>
       )}
       {(connectError || switchError) && (
-        <p role="alert" className="max-w-56 text-xs text-destructive">
-          {(connectError ?? switchError)?.message}
-        </p>
+        <div className="flex basis-full flex-col items-end gap-1 sm:basis-auto">
+          <p role="alert" className="max-w-72 text-xs text-destructive">
+            {providerMissing
+              ? "No injected wallet was found in this tab. Enable your wallet extension, or open the preview in a new tab and try again."
+              : (connectError ?? switchError)?.message}
+          </p>
+          {providerMissing && (
+            <Button type="button" variant="outline" size="sm" onClick={openPreviewInNewTab}>
+              Open preview in a new tab
+            </Button>
+          )}
+        </div>
       )}
       {isSwitching && <span role="status" className="sr-only">Switching wallet network</span>}
     </div>

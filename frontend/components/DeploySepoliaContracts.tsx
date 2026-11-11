@@ -10,6 +10,7 @@ import { AMM_ABI, AMM_DEPLOYMENT_ABI, ERC20_ABI, TOKEN_DEPLOYMENT_ABI } from "@/
 import { SIMPLE_AMM_BYTECODE, TOKEN_A_BYTECODE, TOKEN_B_BYTECODE } from "@/lib/deployment-bytecode";
 import { SEPOLIA_CHAIN_ID, type CompleteContractAddresses } from "@/lib/constants";
 import { useContractAddresses } from "@/lib/contract-addresses";
+import { isWalletProviderMissing } from "@/lib/wallet-errors";
 
 const INITIAL_LIQUIDITY = parseEther("10000");
 
@@ -38,6 +39,11 @@ export function DeploySepoliaContracts() {
 
   const injectedConnector = connectors.find((connector) => connector.id === "injected");
   const readyForSepolia = isConnected && walletChainId === SEPOLIA_CHAIN_ID;
+  const providerMissing = isWalletProviderMissing(connectError ?? switchError ?? error);
+  const openPreviewInNewTab = () => window.open(window.location.href, "_blank", "noopener,noreferrer");
+  const connectionErrorMessage = error || (providerMissing
+    ? "No injected wallet was found in this tab. Enable your wallet extension, or open the preview in a new tab and try again."
+    : "Wallet connection or network switching failed.");
   const shouldShow = chainId === SEPOLIA_CHAIN_ID && (!configured || isSessionDeployment);
 
   if (!shouldShow) return null;
@@ -218,14 +224,17 @@ export function DeploySepoliaContracts() {
         {poolSeeded && <p role="status" className="text-sm font-medium text-primary">Initial Sepolia pool is ready for trading.</p>}
         {status && <p role="status" aria-live="polite" className="text-sm text-muted-foreground">{status}</p>}
         {(connectError || switchError || error) && (
-          <div className="flex flex-col gap-1 text-sm text-destructive">
-            <p role="alert">{error || "Wallet connection or network switching failed."}</p>
-            {(error || connectError || switchError) && (
-              <details className="text-xs text-muted-foreground">
-                <summary className="cursor-pointer">Technical details</summary>
-                <p className="mt-1 break-words">{error || (connectError ?? switchError)?.message}</p>
-              </details>
+          <div className="flex flex-col gap-2 text-sm text-destructive">
+            <p role="alert">{connectionErrorMessage}</p>
+            {providerMissing && (
+              <Button type="button" variant="outline" size="sm" className="w-fit" onClick={openPreviewInNewTab}>
+                Open preview in a new tab
+              </Button>
             )}
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer">Technical details</summary>
+              <p className="mt-1 break-words">{error || (connectError ?? switchError)?.message}</p>
+            </details>
           </div>
         )}
         {Object.keys(draftAddresses).length > 0 && !configured && (
