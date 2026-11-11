@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { WalletBar } from '@/components/WalletBar';
+import { DeploySepoliaContracts } from '@/components/DeploySepoliaContracts';
 
 export default function WalletLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -37,6 +38,7 @@ export default function WalletLayout({ children }: { children: React.ReactNode }
       </header>
 
       <main className="max-w-md mx-auto px-4 py-6">
+        <DeploySepoliaContracts />
         {children}
       </main>
 

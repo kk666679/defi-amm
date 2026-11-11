@@ -7,6 +7,7 @@ import PoolsPage from "./components/PoolsPage";
 import { HomeIcon, SwapIcon, EarnIcon } from "./icons"
 import type { PageId } from "./types";
 import { WalletBar } from "@/components/WalletBar";
+import { DeploySepoliaContracts } from "@/components/DeploySepoliaContracts";
 
 export default function PayFlowApp() {
   const [page, setPage] = useState<PageId>("home");
@@ -22,6 +23,7 @@ export default function PayFlowApp() {
     <div className="font-sans antialiased bg-gb-bg text-gb-text min-h-screen pb-20 md:pb-0">
       <Header onLogoClick={() => nav("home")} />
       <main className="max-w-5xl mx-auto px-4 py-6">
+        <DeploySepoliaContracts />
         {page === "home" && <HomePage onNavigate={nav} />}
         {page === "swap" && <SwapPage onNavigate={nav} />}
         {page === "pools" && <PoolsPage onNavigate={nav} />}

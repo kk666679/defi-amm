@@ -328,7 +328,15 @@ Open <http://localhost:3000/> for the landing page, <http://localhost:3000/payfl
 
 ---
 
-## 🦊 MetaMask Setup
+## Wallet Networks
+
+### Sepolia testnet (hosted preview)
+
+The hosted app defaults to Sepolia (chain ID `11155111`). Connect an injected wallet, select Sepolia in the network control, and use the setup panel to deploy TKA, TKB, and the AMM. The wallet signs three contract deployments, two token approvals, and one initial-liquidity transaction; it needs Sepolia test ETH. The private key never leaves the wallet.
+
+After deployment, copy the three public contract addresses into Vercel Vars (`NEXT_PUBLIC_SEPOLIA_AMM_ADDRESS`, `NEXT_PUBLIC_SEPOLIA_TOKEN_A_ADDRESS`, and `NEXT_PUBLIC_SEPOLIA_TOKEN_B_ADDRESS`) so the app can restore the deployment after a refresh.
+
+### Hardhat Local (optional)
 
 ```mermaid
 flowchart TD
@@ -341,7 +349,7 @@ flowchart TD
     E --> F[Import Tokens from frontend/.env.local]
     F --> F1["Use addresses written by deploy-amm.ts"]
     F1 --> G[Back to localhost:3000]
-    G --> H[Click Connect MetaMask]
+    G --> H[Click Connect wallet]
     H --> I[Confirm in popup]
     I --> J[✅ Connected]
 
@@ -376,8 +384,13 @@ Private key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 | `NEXT_PUBLIC_AMM_ADDRESS` | Deployed local `SimpleAMM` address | Written by `scripts/deploy-amm.ts` |
 | `NEXT_PUBLIC_TOKEN_A_ADDRESS` | Deployed local `TokenA` address | Written by `scripts/deploy-amm.ts` |
 | `NEXT_PUBLIC_TOKEN_B_ADDRESS` | Deployed local `TokenB` address | Written by `scripts/deploy-amm.ts` |
+| `NEXT_PUBLIC_HARDHAT_RPC_URL` | Optional local Hardhat RPC URL | Defaults to `http://127.0.0.1:8545` |
+| `NEXT_PUBLIC_SEPOLIA_RPC_URL` | Optional Sepolia JSON-RPC URL | Defaults to the publicnode endpoint; never put a private API key in this public variable |
+| `NEXT_PUBLIC_SEPOLIA_AMM_ADDRESS` | Deployed Sepolia `SimpleAMM` address | Copy from the deployment panel |
+| `NEXT_PUBLIC_SEPOLIA_TOKEN_A_ADDRESS` | Deployed Sepolia `TokenA` address | Copy from the deployment panel |
+| `NEXT_PUBLIC_SEPOLIA_TOKEN_B_ADDRESS` | Deployed Sepolia `TokenB` address | Copy from the deployment panel |
 
-> `.env.local` is git-ignored. Use `.env.example` as the template.
+> `.env.local` is git-ignored. Use `.env.example` as the template. Contract addresses are public; never add wallet private keys to these variables.
 
 ---
 

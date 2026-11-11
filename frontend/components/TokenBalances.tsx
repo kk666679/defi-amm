@@ -3,17 +3,20 @@
 import { formatEther } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 import { ERC20_ABI } from "@/lib/abi";
-import { CONTRACTS_CONFIGURED, HARDHAT_CHAIN_ID, TOKEN_A_ADDRESS, TOKEN_B_ADDRESS } from "@/lib/constants";
+import { TRADE_CHAIN_NAMES, isSupportedTradeChain } from "@/lib/constants";
+import { useContractAddresses } from "@/lib/contract-addresses";
 
 export function TokenBalances() {
-  const { address, chainId, isConnected } = useAccount();
-  const enabled = Boolean(isConnected && address && CONTRACTS_CONFIGURED && chainId === HARDHAT_CHAIN_ID);
-  const tokenA = useReadContract({ address: TOKEN_A_ADDRESS!, abi: ERC20_ABI, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled } });
-  const tokenB = useReadContract({ address: TOKEN_B_ADDRESS!, abi: ERC20_ABI, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled } });
+  const { address, isConnected } = useAccount();
+  const { addresses, chainId, configured } = useContractAddresses();
+  const supportedNetwork = isSupportedTradeChain(chainId);
+  const enabled = Boolean(isConnected && address && configured && supportedNetwork);
+  const tokenA = useReadContract({ address: addresses.tokenA!, abi: ERC20_ABI, chainId, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled } });
+  const tokenB = useReadContract({ address: addresses.tokenB!, abi: ERC20_ABI, chainId, functionName: "balanceOf", args: address ? [address] : undefined, query: { enabled } });
 
   if (!isConnected) return <p role="status" className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">Connect an injected wallet to view token balances.</p>;
-  if (chainId !== HARDHAT_CHAIN_ID) return <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">Switch to the local Hardhat network (chain ID {HARDHAT_CHAIN_ID}) to view this deployment.</p>;
-  if (!CONTRACTS_CONFIGURED) return <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">Token balances are unavailable until the AMM and token addresses are configured.</p>;
+  if (!supportedNetwork) return <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">Select Sepolia or Hardhat Local with the wallet network selector above.</p>;
+  if (!configured) return <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">No {TRADE_CHAIN_NAMES[chainId]} token addresses are configured. Deploy on Sepolia or add the contract addresses to Vercel Vars.</p>;
   if (tokenA.error || tokenB.error) return <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">Could not load token balances: {(tokenA.error ?? tokenB.error)?.message}</p>;
 
   return (

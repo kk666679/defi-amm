@@ -2,16 +2,31 @@ import { cookieStorage, createStorage, createConfig } from "wagmi";
 import { mainnet, sepolia } from "wagmi/chains";
 import { custom, defineChain, fallback, http, type EIP1193Parameters, type EIP1193Provider, type EIP1474Methods } from "viem";
 import { injected } from "wagmi/connectors";
-import { HARDHAT_CHAIN_ID, HARDHAT_RPC_URL } from "@/lib/constants";
+import {
+  HARDHAT_CHAIN_ID,
+  HARDHAT_RPC_URL,
+  SEPOLIA_RPC_URL,
+} from "@/lib/constants";
 
 export const hardhatLocal = defineChain({
-  id: 31337,
+  id: HARDHAT_CHAIN_ID,
   name: "Hardhat Local",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
     default: { http: [HARDHAT_RPC_URL] },
   },
 });
+
+const sepoliaWithPublicRpc = {
+  ...sepolia,
+  rpcUrls: {
+    ...sepolia.rpcUrls,
+    default: {
+      ...sepolia.rpcUrls.default,
+      http: [SEPOLIA_RPC_URL],
+    },
+  },
+};
 
 type InjectedRequestArgs = EIP1193Parameters<EIP1474Methods>;
 
@@ -32,12 +47,12 @@ const injectedWalletTransport = custom({
 
 export function getConfig() {
   return createConfig({
-    chains: [hardhatLocal, mainnet, sepolia],
+    chains: [sepoliaWithPublicRpc, hardhatLocal, mainnet],
     connectors: [injected()],
     transports: {
+      [sepolia.id]: http(SEPOLIA_RPC_URL),
       [hardhatLocal.id]: fallback([injectedWalletTransport, http(HARDHAT_RPC_URL)]),
       [mainnet.id]: http(),
-      [sepolia.id]: http(),
     },
     ssr: true,
     storage: createStorage({ storage: cookieStorage }),
