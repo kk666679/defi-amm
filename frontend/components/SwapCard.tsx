@@ -4,7 +4,7 @@ import { useState } from "react";
 import { formatEther, parseEther } from "viem";
 import { useAccount, usePublicClient, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { AMM_ABI, ERC20_ABI } from "@/lib/abi";
-import { AMM_ADDRESS, CONTRACTS_CONFIGURED, HARDHAT_CHAIN_ID, TOKEN_A_ADDRESS, TOKEN_B_ADDRESS } from "@/lib/constants";
+import { AMM_ADDRESS, CONTRACTS_CONFIGURED, HARDHAT_CHAIN_ID, HARDHAT_RPC_UNAVAILABLE_MESSAGE, TOKEN_A_ADDRESS, TOKEN_B_ADDRESS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,8 @@ export function SwapCard() {
   const tokenInSymbol = direction === "AtoB" ? "TKA" : "TKB";
   const tokenOutSymbol = direction === "AtoB" ? "TKB" : "TKA";
   const configured = CONTRACTS_CONFIGURED && Boolean(AMM_ADDRESS && tokenIn);
+  const wrongNetwork = isConnected && chainId !== HARDHAT_CHAIN_ID;
+  const canReadContracts = configured && !wrongNetwork;
 
   const amountInWei = (() => {
     if (!/^\d+(\.\d{0,18})?$/.test(amountIn)) return BigInt(0);
@@ -32,18 +34,18 @@ export function SwapCard() {
   })();
 
   const { data: reserveA, isLoading: loadingReserveA, error: reserveErrorA, refetch: refetchReserveA } = useReadContract({
-    address: AMM_ADDRESS!, abi: AMM_ABI, functionName: "reserveA", query: { enabled: configured },
+    address: AMM_ADDRESS!, abi: AMM_ABI, chainId: HARDHAT_CHAIN_ID, functionName: "reserveA", query: { enabled: canReadContracts },
   });
   const { data: reserveB, isLoading: loadingReserveB, error: reserveErrorB, refetch: refetchReserveB } = useReadContract({
-    address: AMM_ADDRESS!, abi: AMM_ABI, functionName: "reserveB", query: { enabled: configured },
+    address: AMM_ADDRESS!, abi: AMM_ABI, chainId: HARDHAT_CHAIN_ID, functionName: "reserveB", query: { enabled: canReadContracts },
   });
   const { data: balanceIn, refetch: refetchBalance } = useReadContract({
-    address: tokenIn!, abi: ERC20_ABI, functionName: "balanceOf", args: address ? [address] : undefined,
-    query: { enabled: configured && Boolean(address) },
+    address: tokenIn!, abi: ERC20_ABI, chainId: HARDHAT_CHAIN_ID, functionName: "balanceOf", args: address ? [address] : undefined,
+    query: { enabled: canReadContracts && Boolean(address) },
   });
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: tokenIn!, abi: ERC20_ABI, functionName: "allowance", args: address && AMM_ADDRESS ? [address, AMM_ADDRESS] : undefined,
-    query: { enabled: configured && Boolean(address) },
+    address: tokenIn!, abi: ERC20_ABI, chainId: HARDHAT_CHAIN_ID, functionName: "allowance", args: address && AMM_ADDRESS ? [address, AMM_ADDRESS] : undefined,
+    query: { enabled: canReadContracts && Boolean(address) },
   });
 
   const reserveIn = direction === "AtoB" ? reserveA : reserveB;
@@ -62,9 +64,9 @@ export function SwapCard() {
   const { isLoading: waitingApproval, isSuccess: approvalConfirmed, error: approvalReceiptError } = useWaitForTransactionReceipt({ hash: approveHash });
   const { isLoading: waitingSwap, isSuccess: swapConfirmed, error: swapReceiptError } = useWaitForTransactionReceipt({ hash: swapHash });
 
-  const wrongNetwork = isConnected && chainId !== HARDHAT_CHAIN_ID;
   const isPending = isApproving || waitingApproval || isSwapping || waitingSwap;
-  const actionError = approveError ?? approvalReceiptError ?? swapError ?? swapReceiptError ?? reserveErrorA ?? reserveErrorB;
+  const reserveReadError = reserveErrorA ?? reserveErrorB;
+  const transactionError = approveError ?? approvalReceiptError ?? swapError ?? swapReceiptError;
 
   const handleFlip = () => {
     setDirection((current) => current === "AtoB" ? "BtoA" : "AtoB");
@@ -136,16 +138,25 @@ export function SwapCard() {
         </label>
         <p className="text-xs text-muted-foreground">Minimum received: {minimumOut > 0n ? Number(formatEther(minimumOut)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : "0"} {tokenOutSymbol}</p>
         {isConnected ? needsApproval ? (
-          <Button onClick={handleApprove} disabled={!configured || wrongNetwork || isPending || insufficientBalance} className="w-full">
+          <Button onClick={handleApprove} disabled={!configured || wrongNetwork || isPending || insufficientBalance || Boolean(reserveReadError)} className="w-full">
             {isPending ? "Waiting for approval…" : `Approve ${tokenInSymbol}`}
           </Button>
         ) : (
-          <Button onClick={handleSwap} disabled={!configured || wrongNetwork || isPending || !amountInWei || !amountOut || insufficientBalance || allowance === undefined} className="w-full">
+          <Button onClick={handleSwap} disabled={!configured || wrongNetwork || isPending || !amountInWei || !amountOut || insufficientBalance || allowance === undefined || Boolean(reserveReadError)} className="w-full">
             {isPending ? "Waiting for confirmation…" : insufficientBalance ? "Insufficient balance" : "Swap"}
           </Button>
         ) : <p className="rounded-xl border border-border p-3 text-center text-sm text-muted-foreground">Connect an injected wallet to trade.</p>}
         {insufficientBalance && <p role="alert" className="text-sm text-destructive">Amount exceeds your {tokenInSymbol} balance.</p>}
-        {actionError && <p role="alert" className="break-words text-sm text-destructive">Transaction failed: {actionError.message}</p>}
+        {reserveReadError && (
+          <div className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">
+            <p role="alert" className="text-destructive">{HARDHAT_RPC_UNAVAILABLE_MESSAGE}</p>
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer">Technical details</summary>
+              <p className="mt-1 break-words">{reserveReadError.message}</p>
+            </details>
+          </div>
+        )}
+        {transactionError && <p role="alert" className="break-words text-sm text-destructive">Transaction failed: {transactionError.message}</p>}
         {approvalConfirmed && <p role="status" className="text-sm text-muted-foreground">Approval confirmed. You can submit the swap.</p>}
         {swapConfirmed && <p role="status" className="text-sm text-green-700 dark:text-green-400">Swap transaction confirmed.</p>}
         <div className="flex flex-wrap justify-between gap-2 border-t border-border pt-3 text-xs text-muted-foreground">
