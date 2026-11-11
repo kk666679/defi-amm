@@ -9,3 +9,5 @@ export const TOKEN_A_ADDRESS = configuredAddress(process.env.NEXT_PUBLIC_TOKEN_A
 export const TOKEN_B_ADDRESS = configuredAddress(process.env.NEXT_PUBLIC_TOKEN_B_ADDRESS);
 export const CONTRACTS_CONFIGURED = Boolean(AMM_ADDRESS && TOKEN_A_ADDRESS && TOKEN_B_ADDRESS);
 export const HARDHAT_CHAIN_ID = 31337;
+export const HARDHAT_RPC_URL = process.env.NEXT_PUBLIC_HARDHAT_RPC_URL?.trim() || "http://127.0.0.1:8545";
+export const HARDHAT_RPC_UNAVAILABLE_MESSAGE = "Hardhat RPC is unreachable. Connect an injected wallet and switch it to Hardhat Local (chain ID 31337), or set NEXT_PUBLIC_HARDHAT_RPC_URL to an endpoint reachable from your browser and wallet. In a hosted preview, 127.0.0.1 refers to your own computer.";

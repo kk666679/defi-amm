@@ -488,14 +488,14 @@ Covers:
 | AMM Landing | Web3 Providers | Uses app-level provider tree | `frontend/app/layout.tsx`, `frontend/app/providers.tsx` | Verified |
 | Web3 Providers | Wallet Config | Configures wagmi | `frontend/app/providers.tsx`, `frontend/app/wagmi.ts` | Verified |
 | Wallet Config | Injected Wallet | Configures injected connector | `frontend/app/wagmi.ts` | Verified |
-| Injected Wallet | Local Hardhat Chain | Sends JSON-RPC after wallet is configured for chain 31337 | `frontend/app/wagmi.ts`; wallet/network configuration is external | Inferred; not verified in browser wallet |
+| Injected Wallet | Local Hardhat Chain | Supplies contract reads and signs transactions after switching to chain 31337 | `frontend/app/wagmi.ts`, `frontend/components/WalletBar.tsx` | Configured; browser-wallet transaction untested |
 | Local Hardhat Chain | Constant-Product AMM | Hosts the deployed local AMM | `hardhat.config.ts`, `scripts/deploy-amm.ts` | Verified in this workspace; ephemeral chain |
 | Constant-Product AMM | Pool Tokens | Uses ERC-20 token contracts and reserves | `contracts/SimpleAMM.sol`, `contracts/TokenA.sol`, `contracts/TokenB.sol` | Verified |
 | Swap Card | Contract ABI | Uses min-output swap and approval methods | `frontend/components/SwapCard.tsx`, `frontend/lib/abi.ts` | Verified |
 | Reserve Display | Contract ABI | Reads `reserveA` and `reserveB` | `frontend/components/ReservesDisplay.tsx`, `frontend/lib/abi.ts` | Verified |
 | Production deployment | Contract addresses | Requires environment-specific deployed addresses; none are committed or assumed | `frontend/lib/constants.ts`, `frontend/.env.example` | Missing until deployed/configured |
 
-**Local setup:** the deployment script seeds the Hardhat pool and writes the generated addresses to the git-ignored `frontend/.env.local`, preserving unrelated existing values. Production contracts, network access, and user wallet behavior remain environment-dependent and require separate verification.
+**Local setup:** the deployment script seeds the Hardhat pool and writes the generated addresses to the git-ignored `frontend/.env.local`, preserving unrelated existing values. The wallet control can add or switch to Hardhat Local (chain ID 31337). Contract reads use the injected wallet provider when available, with HTTP fallback. `NEXT_PUBLIC_HARDHAT_RPC_URL` defaults to `http://127.0.0.1:8545`; in a hosted preview, `127.0.0.1` refers to the viewer's own computer, so use a reachable RPC endpoint if the local node is not on that machine. This `NEXT_PUBLIC_` URL is exposed to browsers and must not contain a private API key. Production contracts, network access, and user wallet behavior remain environment-dependent and require separate verification.
 
 ---
 
