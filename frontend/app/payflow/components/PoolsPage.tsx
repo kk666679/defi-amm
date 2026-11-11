@@ -1,7 +1,6 @@
 "use client";
 
 import { ReservesDisplay } from "@/components/ReservesDisplay";
-import { CONTRACTS_CONFIGURED } from "@/lib/constants";
 import { BackIcon } from "../icons";
 import type { PageId } from "../types";
 
@@ -14,7 +13,7 @@ export default function PoolsPage({ onNavigate }: { onNavigate: (p: PageId) => v
         </button>
         <div>
           <h1 className="text-lg font-bold text-gb-text">AMM pool</h1>
-          <p className="text-xs text-gb-muted">Live reserves from the configured local deployment</p>
+          <p className="text-xs text-gb-muted">Live reserves from the selected network</p>
         </div>
       </div>
       <div className="app-card flex flex-col gap-4 p-5">
@@ -23,7 +22,6 @@ export default function PoolsPage({ onNavigate }: { onNavigate: (p: PageId) => v
           <p className="mt-1 text-sm text-gb-muted">Constant-product pool · 0.3% swap fee</p>
         </div>
         <ReservesDisplay />
-        {!CONTRACTS_CONFIGURED && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">Pool data is unavailable until AMM and token contract addresses are configured.</p>}
         <p className="text-xs text-gb-muted">This repository exposes a single TKA/TKB pool. TVL, APR, USD pricing, and additional pairs are not available from the current contracts.</p>
       </div>
     </section>

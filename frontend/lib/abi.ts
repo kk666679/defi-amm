@@ -12,6 +12,21 @@ export const AMM_ABI = [
   { type: "function", name: "addLiquidity", stateMutability: "nonpayable", inputs: [{ type: "uint256", name: "amountA" }, { type: "uint256", name: "amountB" }], outputs: [] },
 ] as const;
 
+export const TOKEN_DEPLOYMENT_ABI = [
+  { type: "constructor", stateMutability: "nonpayable", inputs: [] },
+] as const;
+
+export const AMM_DEPLOYMENT_ABI = [
+  {
+    type: "constructor",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "_tokenA", type: "address" },
+      { name: "_tokenB", type: "address" },
+    ],
+  },
+] as const;
+
 export const ERC20_ABI = [
   { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "allowance", stateMutability: "view", inputs: [{ type: "address" }, { type: "address" }], outputs: [{ type: "uint256" }] },

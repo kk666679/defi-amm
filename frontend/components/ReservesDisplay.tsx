@@ -1,27 +1,36 @@
 "use client";
 
 import { formatEther } from "viem";
-import { useAccount, useReadContract } from "wagmi";
+import { useReadContract } from "wagmi";
 import { AMM_ABI } from "@/lib/abi";
-import { AMM_ADDRESS, CONTRACTS_CONFIGURED, HARDHAT_CHAIN_ID, HARDHAT_RPC_UNAVAILABLE_MESSAGE } from "@/lib/constants";
+import {
+  HARDHAT_CHAIN_ID,
+  HARDHAT_RPC_UNAVAILABLE_MESSAGE,
+  SEPOLIA_RPC_UNAVAILABLE_MESSAGE,
+  TRADE_CHAIN_NAMES,
+  isSupportedTradeChain,
+} from "@/lib/constants";
+import { useContractAddresses } from "@/lib/contract-addresses";
 
 export function ReservesDisplay() {
-  const { chainId, isConnected } = useAccount();
-  const wrongNetwork = isConnected && chainId !== HARDHAT_CHAIN_ID;
-  const canReadReserves = CONTRACTS_CONFIGURED && !wrongNetwork;
+  const { addresses, chainId, configured } = useContractAddresses();
+  const supportedNetwork = isSupportedTradeChain(chainId);
+  const rpcMessage = chainId === HARDHAT_CHAIN_ID
+    ? HARDHAT_RPC_UNAVAILABLE_MESSAGE
+    : SEPOLIA_RPC_UNAVAILABLE_MESSAGE;
   const { data: reserveA, isLoading: loadingA, error: errorA } = useReadContract({
-    address: AMM_ADDRESS!, abi: AMM_ABI, chainId: HARDHAT_CHAIN_ID, functionName: "reserveA", query: { enabled: canReadReserves },
+    address: addresses.amm!, abi: AMM_ABI, chainId, functionName: "reserveA", query: { enabled: configured && supportedNetwork },
   });
   const { data: reserveB, isLoading: loadingB, error: errorB } = useReadContract({
-    address: AMM_ADDRESS!, abi: AMM_ABI, chainId: HARDHAT_CHAIN_ID, functionName: "reserveB", query: { enabled: canReadReserves },
+    address: addresses.amm!, abi: AMM_ABI, chainId, functionName: "reserveB", query: { enabled: configured && supportedNetwork },
   });
 
-  if (!CONTRACTS_CONFIGURED) return <p role="status" className="text-sm text-muted-foreground">Contract addresses are not configured.</p>;
-  if (wrongNetwork) return <p role="status" className="text-sm text-amber-700 dark:text-amber-300">Switch your wallet to Hardhat Local (chain ID {HARDHAT_CHAIN_ID}) using the wallet control above.</p>;
+  if (!supportedNetwork) return <p role="status" className="text-sm text-amber-700 dark:text-amber-300">Select Sepolia or Hardhat Local with the wallet network selector above.</p>;
+  if (!configured) return <p role="status" className="text-sm text-muted-foreground">No {TRADE_CHAIN_NAMES[chainId]} contracts are configured. Deploy the Sepolia contracts above or add this network’s addresses to Vercel Vars.</p>;
   if (errorA || errorB) {
     return (
-      <div className="space-y-2 text-sm">
-        <p role="alert" className="text-destructive">{HARDHAT_RPC_UNAVAILABLE_MESSAGE}</p>
+      <div className="flex flex-col gap-2 text-sm">
+        <p role="alert" className="text-destructive">{rpcMessage}</p>
         <details className="text-xs text-muted-foreground">
           <summary className="cursor-pointer">Technical details</summary>
           <p className="mt-1 break-words">{(errorA ?? errorB)?.message}</p>

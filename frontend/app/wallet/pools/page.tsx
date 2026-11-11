@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ReservesDisplay } from "@/components/ReservesDisplay";
-import { CONTRACTS_CONFIGURED } from "@/lib/constants";
 
 export default function WalletPoolsPage() {
   return (
@@ -11,7 +10,7 @@ export default function WalletPoolsPage() {
         </Link>
         <div>
           <h1 className="text-lg font-bold text-brand-dark">AMM pool</h1>
-          <p className="text-xs text-brand-gray">Live local deployment reserves</p>
+          <p className="text-xs text-brand-gray">Live reserves on the selected network</p>
         </div>
       </div>
       <div className="flex flex-col gap-4 rounded-2xl border border-black/[0.03] bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
@@ -20,7 +19,6 @@ export default function WalletPoolsPage() {
           <p className="mt-1 text-sm text-brand-gray">Single constant-product pool · 0.3% swap fee</p>
         </div>
         <ReservesDisplay />
-        {!CONTRACTS_CONFIGURED && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800">Pool data is unavailable until the local contracts are deployed and configured.</p>}
         <p className="text-xs text-brand-gray">The current contracts expose one pool. TVL, APR, fiat pricing, and other trading pairs are not available from this deployment.</p>
       </div>
     </section>

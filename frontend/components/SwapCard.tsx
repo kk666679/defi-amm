@@ -4,7 +4,14 @@ import { useState } from "react";
 import { formatEther, parseEther } from "viem";
 import { useAccount, usePublicClient, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { AMM_ABI, ERC20_ABI } from "@/lib/abi";
-import { AMM_ADDRESS, CONTRACTS_CONFIGURED, HARDHAT_CHAIN_ID, HARDHAT_RPC_UNAVAILABLE_MESSAGE, TOKEN_A_ADDRESS, TOKEN_B_ADDRESS } from "@/lib/constants";
+import {
+  HARDHAT_CHAIN_ID,
+  HARDHAT_RPC_UNAVAILABLE_MESSAGE,
+  SEPOLIA_RPC_UNAVAILABLE_MESSAGE,
+  TRADE_CHAIN_NAMES,
+  isSupportedTradeChain,
+} from "@/lib/constants";
+import { useContractAddresses } from "@/lib/contract-addresses";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,17 +19,22 @@ import { Input } from "@/components/ui/input";
 const SLIPPAGE_OPTIONS = [0.1, 0.5, 1];
 
 export function SwapCard() {
-  const { address, chainId, isConnected } = useAccount();
-  const publicClient = usePublicClient({ chainId: HARDHAT_CHAIN_ID });
+  const { address, isConnected } = useAccount();
+  const { addresses, chainId: tradeChainId, configured } = useContractAddresses();
+  const publicClient = usePublicClient({ chainId: tradeChainId });
   const [amountIn, setAmountIn] = useState("");
   const [direction, setDirection] = useState<"AtoB" | "BtoA">("AtoB");
   const [slippage, setSlippage] = useState(0.5);
-  const tokenIn = direction === "AtoB" ? TOKEN_A_ADDRESS : TOKEN_B_ADDRESS;
+  const tokenIn = direction === "AtoB" ? addresses.tokenA : addresses.tokenB;
   const tokenInSymbol = direction === "AtoB" ? "TKA" : "TKB";
   const tokenOutSymbol = direction === "AtoB" ? "TKB" : "TKA";
-  const configured = CONTRACTS_CONFIGURED && Boolean(AMM_ADDRESS && tokenIn);
-  const wrongNetwork = isConnected && chainId !== HARDHAT_CHAIN_ID;
-  const canReadContracts = configured && !wrongNetwork;
+  const supportedNetwork = isSupportedTradeChain(tradeChainId);
+  const wrongNetwork = isConnected && !supportedNetwork;
+  const canReadContracts = configured && supportedNetwork && !wrongNetwork;
+  const networkName = supportedNetwork ? TRADE_CHAIN_NAMES[tradeChainId] : `chain ${tradeChainId}`;
+  const rpcUnavailableMessage = tradeChainId === HARDHAT_CHAIN_ID
+    ? HARDHAT_RPC_UNAVAILABLE_MESSAGE
+    : SEPOLIA_RPC_UNAVAILABLE_MESSAGE;
 
   const amountInWei = (() => {
     if (!/^\d+(\.\d{0,18})?$/.test(amountIn)) return BigInt(0);
@@ -34,17 +46,17 @@ export function SwapCard() {
   })();
 
   const { data: reserveA, isLoading: loadingReserveA, error: reserveErrorA, refetch: refetchReserveA } = useReadContract({
-    address: AMM_ADDRESS!, abi: AMM_ABI, chainId: HARDHAT_CHAIN_ID, functionName: "reserveA", query: { enabled: canReadContracts },
+    address: addresses.amm!, abi: AMM_ABI, chainId: tradeChainId, functionName: "reserveA", query: { enabled: canReadContracts },
   });
   const { data: reserveB, isLoading: loadingReserveB, error: reserveErrorB, refetch: refetchReserveB } = useReadContract({
-    address: AMM_ADDRESS!, abi: AMM_ABI, chainId: HARDHAT_CHAIN_ID, functionName: "reserveB", query: { enabled: canReadContracts },
+    address: addresses.amm!, abi: AMM_ABI, chainId: tradeChainId, functionName: "reserveB", query: { enabled: canReadContracts },
   });
   const { data: balanceIn, refetch: refetchBalance } = useReadContract({
-    address: tokenIn!, abi: ERC20_ABI, chainId: HARDHAT_CHAIN_ID, functionName: "balanceOf", args: address ? [address] : undefined,
+    address: tokenIn!, abi: ERC20_ABI, chainId: tradeChainId, functionName: "balanceOf", args: address ? [address] : undefined,
     query: { enabled: canReadContracts && Boolean(address) },
   });
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: tokenIn!, abi: ERC20_ABI, chainId: HARDHAT_CHAIN_ID, functionName: "allowance", args: address && AMM_ADDRESS ? [address, AMM_ADDRESS] : undefined,
+    address: tokenIn!, abi: ERC20_ABI, chainId: tradeChainId, functionName: "allowance", args: address && addresses.amm ? [address, addresses.amm] : undefined,
     query: { enabled: canReadContracts && Boolean(address) },
   });
 
@@ -61,8 +73,8 @@ export function SwapCard() {
 
   const { writeContract: approve, data: approveHash, isPending: isApproving, error: approveError } = useWriteContract();
   const { writeContract: swap, data: swapHash, isPending: isSwapping, error: swapError } = useWriteContract();
-  const { isLoading: waitingApproval, isSuccess: approvalConfirmed, error: approvalReceiptError } = useWaitForTransactionReceipt({ hash: approveHash });
-  const { isLoading: waitingSwap, isSuccess: swapConfirmed, error: swapReceiptError } = useWaitForTransactionReceipt({ hash: swapHash });
+  const { isLoading: waitingApproval, isSuccess: approvalConfirmed, error: approvalReceiptError } = useWaitForTransactionReceipt({ hash: approveHash, chainId: tradeChainId });
+  const { isLoading: waitingSwap, isSuccess: swapConfirmed, error: swapReceiptError } = useWaitForTransactionReceipt({ hash: swapHash, chainId: tradeChainId });
 
   const isPending = isApproving || waitingApproval || isSwapping || waitingSwap;
   const reserveReadError = reserveErrorA ?? reserveErrorB;
@@ -74,8 +86,8 @@ export function SwapCard() {
   };
 
   const handleApprove = () => {
-    if (!tokenIn || !AMM_ADDRESS || !amountInWei) return;
-    approve({ address: tokenIn, abi: ERC20_ABI, functionName: "approve", args: [AMM_ADDRESS, amountInWei] }, {
+    if (!tokenIn || !addresses.amm || !amountInWei) return;
+    approve({ chainId: tradeChainId, address: tokenIn, abi: ERC20_ABI, functionName: "approve", args: [addresses.amm, amountInWei] }, {
       onSuccess: async (hash) => {
         const receipt = await publicClient?.waitForTransactionReceipt({ hash });
         if (receipt?.status === "success") await refetchAllowance();
@@ -84,9 +96,10 @@ export function SwapCard() {
   };
 
   const handleSwap = () => {
-    if (!AMM_ADDRESS || !amountInWei || !minimumOut || wrongNetwork || insufficientBalance) return;
+    if (!addresses.amm || !amountInWei || !minimumOut || wrongNetwork || insufficientBalance) return;
     swap({
-      address: AMM_ADDRESS,
+      chainId: tradeChainId,
+      address: addresses.amm,
       abi: AMM_ABI,
       functionName: direction === "AtoB" ? "swapAForBMinOut" : "swapBForAMinOut",
       args: [amountInWei, minimumOut],
@@ -109,8 +122,8 @@ export function SwapCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {!configured && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">AMM contracts are not configured. Set the three NEXT_PUBLIC_* contract addresses after deploying to Hardhat.</p>}
-        {wrongNetwork && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">Switch your wallet to the local Hardhat network (chain ID {HARDHAT_CHAIN_ID}).</p>}
+        {!configured && <p role="status" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">No {networkName} contracts are configured. Use the setup panel above or add this network’s contract addresses to Vercel Vars.</p>}
+        {wrongNetwork && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">Select Sepolia or Hardhat Local with the wallet network selector above.</p>}
         <div className="rounded-2xl border border-border/50 bg-muted/50 p-4">
           <div className="mb-2 flex justify-between text-sm text-muted-foreground">
             <label htmlFor="swap-amount">You pay</label>
@@ -149,7 +162,7 @@ export function SwapCard() {
         {insufficientBalance && <p role="alert" className="text-sm text-destructive">Amount exceeds your {tokenInSymbol} balance.</p>}
         {reserveReadError && (
           <div className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">
-            <p role="alert" className="text-destructive">{HARDHAT_RPC_UNAVAILABLE_MESSAGE}</p>
+            <p role="alert" className="text-destructive">{rpcUnavailableMessage}</p>
             <details className="text-xs text-muted-foreground">
               <summary className="cursor-pointer">Technical details</summary>
               <p className="mt-1 break-words">{reserveReadError.message}</p>

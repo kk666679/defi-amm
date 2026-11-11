@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "PayFlow | DeFi AMM",
-  description: "The Master Liquidity Engine for the PayFlow network.",
+  description: "Connect an injected wallet to deploy and trade the PayFlow AMM on Sepolia or Hardhat Local.",
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
