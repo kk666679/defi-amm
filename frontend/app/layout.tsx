@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { cookieToInitialState } from "wagmi";
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   description: "The Master Liquidity Engine for the PayFlow network.",
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   const initialState = cookieToInitialState(
     getConfig(),
     (await headers()).get("cookie")

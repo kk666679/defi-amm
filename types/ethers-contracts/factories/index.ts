@@ -2,3 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export { Counter__factory } from './Counter__factory.js';
+export { SimpleAMM__factory } from './SimpleAMM__factory.js';
+export { TokenA__factory } from './TokenA__factory.js';
+export { TokenB__factory } from './TokenB__factory.js';
