@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "",
+  "description": "PayFlow — DeFi AMM",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
