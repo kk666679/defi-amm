@@ -1,0 +1,289 @@
+// =============================================================================
+// Prisma Schema
+// File: schema.prisma
+// Project: DeFi AMM
+// Description: Database schema for an Automated Market Maker (AMM) DeFi app
+//              Includes users, wallets, pools, tokens, swaps, liquidity events,
+//              and transaction tracking.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Datasource
+// -----------------------------------------------------------------------------
+// Defines the database connection. The provider is PostgreSQL.
+// The connection string is read from the DATABASE_URL environment variable.
+// -----------------------------------------------------------------------------
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// Generator
+// -----------------------------------------------------------------------------
+// Configures the Prisma Client generator.
+// The client is generated to a custom output path.
+// -----------------------------------------------------------------------------
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+// =============================================================================
+// Enums
+// =============================================================================
+
+// Direction of a swap relative to the base token.
+enum SwapDirection {
+  BUY
+  SELL
+}
+
+// Type of liquidity operation.
+enum LiquidityEventType {
+  ADD
+  REMOVE
+}
+
+// Status of an on-chain transaction.
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REVERTED
+}
+
+// Type of token standard.
+enum TokenStandard {
+  ERC20
+  ERC721
+  ERC1155
+  NATIVE
+}
+
+// =============================================================================
+// Models
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// User
+// -----------------------------------------------------------------------------
+// Core user account model. A user can own multiple wallets and perform swaps.
+// -----------------------------------------------------------------------------
+model User {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+
+  // Relations
+  wallets   Wallet[]
+  swaps     Swap[]
+  liquidity LiquidityEvent[]
+
+  @@index([email])
+  @@map("users")
+}
+
+// -----------------------------------------------------------------------------
+// Wallet
+// -----------------------------------------------------------------------------
+// A wallet is an on-chain address owned by a user. A user may connect multiple
+// wallets (e.g., MetaMask, WalletConnect, Coinbase Wallet).
+// -----------------------------------------------------------------------------
+model Wallet {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  address   String   @unique // 0x-prefixed hex address
+  chainId   Int      @default(1) // Default to Ethereum mainnet
+  label     String?  // User-friendly label, e.g. "MetaMask"
+  isPrimary Boolean  @default(false)
+
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  swaps     Swap[]
+  liquidity LiquidityEvent[]
+
+  @@index([userId])
+  @@index([address])
+  @@map("wallets")
+}
+
+// -----------------------------------------------------------------------------
+// Token
+// -----------------------------------------------------------------------------
+// Represents a token that can be traded in an AMM pool.
+// -----------------------------------------------------------------------------
+model Token {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  address   String   @unique // Contract address (or "native" for ETH)
+  chainId   Int      @default(1)
+  symbol    String
+  name      String
+  decimals  Int      @default(18)
+  standard  TokenStandard @default(ERC20)
+  logoUrl   String?
+
+  // Relations
+  poolToken0      Pool[]  @relation("PoolToken0")
+  poolToken1      Pool[]  @relation("PoolToken1")
+  swapTokenIn     Swap[]  @relation("SwapTokenIn")
+  swapTokenOut    Swap[]  @relation("SwapTokenOut")
+  liquidityToken  LiquidityEvent[] @relation("LiquidityToken")
+
+  @@unique([address, chainId])
+  @@index([symbol])
+  @@map("tokens")
+}
+
+// -----------------------------------------------------------------------------
+// Pool
+// -----------------------------------------------------------------------------
+// A liquidity pool for a token pair (e.g., ETH/USDC). Each pool has two tokens,
+// reserves, and an LP token supply.
+// -----------------------------------------------------------------------------
+model Pool {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  address   String   @unique // Pool contract address
+  chainId   Int      @default(1)
+  name      String?  // e.g. "ETH/USDC"
+
+  token0Id  Int
+  token0    Token    @relation("PoolToken0", fields: [token0Id], references: [id])
+
+  token1Id  Int
+  token1    Token    @relation("PoolToken1", fields: [token1Id], references: [id])
+
+  reserve0  Decimal  @db.Decimal(38, 18)
+  reserve1  Decimal  @db.Decimal(38, 18)
+
+  feeBps    Int      @default(30) // 0.30% default fee
+  lpSupply  Decimal  @db.Decimal(38, 18) @default(0)
+
+  swaps     Swap[]
+  liquidity LiquidityEvent[]
+  snapshots PriceSnapshot[]
+
+  @@unique([address, chainId])
+  @@index([token0Id, token1Id])
+  @@map("pools")
+}
+
+// -----------------------------------------------------------------------------
+// Swap
+// -----------------------------------------------------------------------------
+// Records a token swap executed against a pool.
+// -----------------------------------------------------------------------------
+model Swap {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  txHash    String   @unique
+  chainId   Int      @default(1)
+  blockNumber BigInt?
+  logIndex  Int?
+
+  direction SwapDirection
+
+  poolId    Int
+  pool      Pool     @relation(fields: [poolId], references: [id])
+
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  walletId  Int?
+  wallet    Wallet?  @relation(fields: [walletId], references: [id])
+
+  tokenInId  Int
+  tokenIn    Token   @relation("SwapTokenIn", fields: [tokenInId], references: [id])
+
+  tokenOutId Int
+  tokenOut   Token   @relation("SwapTokenOut", fields: [tokenOutId], references: [id])
+
+  amountIn   Decimal @db.Decimal(38, 18)
+  amountOut  Decimal @db.Decimal(38, 18)
+
+  feeAmount  Decimal @db.Decimal(38, 18) @default(0)
+  priceImpact Float? // Percentage as a float (e.g. 0.45 for 0.45%)
+
+  status     TransactionStatus @default(PENDING)
+
+  @@index([poolId])
+  @@index([userId])
+  @@index([walletId])
+  @@index([txHash])
+  @@index([createdAt])
+  @@map("swaps")
+}
+
+// -----------------------------------------------------------------------------
+// LiquidityEvent
+// -----------------------------------------------------------------------------
+// Records add/remove liquidity events for a pool.
+// -----------------------------------------------------------------------------
+model LiquidityEvent {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  txHash    String
+  chainId   Int      @default(1)
+  blockNumber BigInt?
+  logIndex  Int?
+
+  type      LiquidityEventType
+
+  poolId    Int
+  pool      Pool     @relation(fields: [poolId], references: [id])
+
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  walletId  Int?
+  wallet    Wallet?  @relation(fields: [walletId], references: [id])
+
+  tokenId   Int?
+  token     Token?   @relation("LiquidityToken", fields: [tokenId], references: [id])
+
+  amount0   Decimal  @db.Decimal(38, 18)
+  amount1   Decimal  @db.Decimal(38, 18)
+  lpAmount  Decimal  @db.Decimal(38, 18)
+
+  status    TransactionStatus @default(PENDING)
+
+  @@unique([txHash, logIndex])
+  @@index([poolId])
+  @@index([userId])
+  @@index([walletId])
+  @@map("liquidity_events")
+}
+
+// -----------------------------------------------------------------------------
+// PriceSnapshot
+// -----------------------------------------------------------------------------
+// Periodic snapshot of pool reserves/prices for charting and analytics.
+// -----------------------------------------------------------------------------
+model PriceSnapshot {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  poolId    Int
+  pool      Pool     @relation(fields: [poolId], references: [id])
+
+  reserve0  Decimal  @db.Decimal(38, 18)
+  reserve1  Decimal  @db.Decimal(38, 18)
+  price0    Decimal  @db.Decimal(38, 18) // Price of token0 in terms of token1
+  price1    Decimal  @db.Decimal(38, 18) // Price of token1 in terms of token0
+
+  @@index([poolId, createdAt])
+  @@map("price_snapshots")
+}
