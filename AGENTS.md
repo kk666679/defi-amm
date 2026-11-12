@@ -1,111 +1,58 @@
-<<<<<<< HEAD
-# PayFlow DeFi AMM — Agent Instructions
-=======
-# Hardhat + ethers project
->>>>>>> origin/main
+# PayFlow DeFi AMM — Repository Instructions
 
-## Project layout
+These are the canonical repository-specific engineering rules for AI agents. Follow applicable higher-priority system, developer, and user instructions first. Read the relevant source before editing; make focused changes and verify the requested behavior.
 
-```
-<<<<<<< HEAD
-app/                  Next.js App Router (DO NOT restructure)
-  docs/               Documentation site
-  payflow/            PayFlow shell — home, swap, pools screens
-  wallet/             Wallet dashboard and sub-routes
-  globals.css         Tailwind 4 CSS-first theme tokens
-  layout.tsx          Root layout with SSR cookie hydration
-  providers.tsx       WagmiProvider + QueryClientProvider
-  wagmi.ts            Chain config, transports, injected connector
-components/           Shared React components
-  ui/                 shadcn/ui primitives
-lib/
-  abi.ts              Typed contract ABIs (as const)
-  constants.ts        Chain IDs, RPC URLs, contract address helpers
-  contract-addresses.tsx  ContractAddressesProvider context
-  deployment-bytecode.ts  Compiled bytecode for in-browser deployment
-  utils.ts            cn() re-export
-  wallet-errors.ts    Wallet error helpers
-types/
-  ethers-contracts/   Hardhat-generated TypeScript contract types
-contracts/            Solidity source (*.sol)
-scripts/              Hardhat run scripts
-test/                 TypeScript contract tests (Mocha + Ethers)
-ignition/             Hardhat Ignition modules
-hardhat.config.ts
-```
+## Agent environment
 
-## Architecture rules
+- Read `.autoclaw/AGENT-ORIENTATION.md` for the AutoClaw on-disk contract and `.autoclaw/agent-style.md` for generated, advisory project learnings. These files are AutoClaw-generated; do not edit or recreate them by hand.
+- Follow `docs/AGENT_SESSION_PROTOCOL.md` for AutoClaw identity, assignment, scope, and message handling. The current registry and board are runtime state, not proof that a task is assigned or that a command/worker is available.
+- Only use an AutoClaw agent ID and mailbox when the current registry actually registers that identity. Do not impersonate Cline, Kilo Code, Claude Code, or another agent; do not invent assignments, messages, votes, reviews, or active workers.
+- Treat `.clinerules/` as tool-specific behavior. Its specialized rules do not override this file, generated AutoClaw contracts, or higher-priority safety instructions.
+- `.autoclaw/` is generated/local runtime state and is git-ignored in this workspace. Do not hand-edit generated orientation/style, databases, indexes, or metrics; use the supported host integration when available.
 
-- **Preserve app/ routes exactly.** Do not rename, move, or delete any file under `app/`.
-- **Do not add `"use client"` to layout.tsx or page.tsx** unless the component genuinely requires browser APIs. Prefer Server Components for static content.
-- **Keep `wagmi.ts` and `providers.tsx` inside `app/`** unless a migration is explicitly proposed and approved.
-- **All wallet interaction must happen in Client Components** (`"use client"`).
-- **Never commit private keys, mnemonics, or `.env.local`** to version control.
-- **`NEXT_PUBLIC_` variables are browser-visible.** Only use this prefix for values safe to expose publicly (contract addresses, public RPC URLs). Never prefix private keys or server secrets with `NEXT_PUBLIC_`.
+## Project architecture
 
-## Coding standards
+- This is a Next.js App Router application with a single-pair TKA/TKB AMM demo. Solidity source is under `lib/contracts/`, not a root `contracts/` directory.
+- Preserve existing paths and route structure under `app/`. Do not move or rename routes as an unrelated refactor.
+- Routes: `/` (AMM landing/swap), `/payflow` (state-based PayFlow shell), `/wallet`, `/wallet/swap`, `/wallet/pools`, and `/docs`.
+- Keep `app/wagmi.ts` and `app/providers.tsx` in place. `app/layout.tsx` is a Server Component that hydrates wagmi state from cookies; keep static routes server-rendered where practical.
+- Add `"use client"` only where browser APIs, React state, or wallet hooks require it. All wallet interaction belongs in Client Components.
+- Shared wallet/AMM components are in `components/`; reusable primitives are in `components/ui/`. `components/ai-elements/` is a component collection, not evidence of an active AI backend.
+- `lib/` owns shared ABIs, chain/address constants, address context, deployment bytecode, wallet errors, utilities, and the server-only Prisma client.
+- `types/ethers-contracts/` and `generated/prisma/` contain generated artifacts. Regenerate them with the project toolchain; do not hand-edit generated files.
+- `prisma/schema.prisma` defines a PostgreSQL data model, but the current app has no API route or UI flow that persists AMM activity. Do not claim swaps are indexed or stored.
 
-- TypeScript strict mode is enabled. All new code must type-check with `npm run typecheck`.
-- Use path aliases: `@/components/*`, `@/lib/*`, `@/hooks/*`, `@/types/*`, `@/config/*`.
-- Prefer `as const` ABIs in `lib/abi.ts` for full viem type inference.
-- Use `cn()` from `@/lib/utils` for conditional class merging.
-- Do not duplicate CSS token blocks in `globals.css`.
+## Frontend and styling
 
-## Web3 conventions
+- TypeScript strict mode is enabled. Use the existing `@/*` aliases. Aliases for `@/hooks/*` and `@/config/*` exist, but those directories are not currently present; do not assume their modules exist.
+- Use `cn` from `@/lib/utils` for conditional class merging.
+- Keep shared Tailwind CSS 4 theme tokens in `app/globals.css`; do not duplicate token blocks. The `/payflow` shell also has `app/payflow/payflow.css`.
+- Reuse existing primitives and shared components. Preserve responsive layouts, mobile navigation, and safe-area spacing.
+- The `/payflow` shell includes sample pool/rate data in `app/payflow/data.ts`; it is not live chain data. The shared swap and reserves components are the chain-backed AMM UI.
 
-- Chain configuration lives in `app/wagmi.ts` and `lib/constants.ts`. Do not scatter chain IDs or RPC URLs across components.
-- Contract addresses are resolved per-chain via `useContractAddresses()` from `lib/contract-addresses.tsx`.
-- Always simulate a transaction before submitting it when possible.
-- Never assume a transaction succeeded before the receipt is confirmed.
-- Handle wallet disconnection, unsupported networks, and missing provider gracefully.
+## Web3 and smart contracts
 
-## Smart contract safety
+- Chain IDs, RPC URLs, supported trading networks, and environment-derived addresses are centralized in `lib/constants.ts`; wagmi chain/transport configuration is in `app/wagmi.ts`.
+- Resolve contract addresses with `useContractAddresses()` from `lib/contract-addresses.tsx`. Keep typed viem ABIs (`as const`) in `lib/abi.ts`.
+- If Solidity changes, keep the ABI and checked-in deployment bytecode in `lib/deployment-bytecode.ts` synchronized.
+- Simulate transactions when practical. Handle disconnected wallets, unsupported networks, absent providers, and RPC failures explicitly. Do not report success until the transaction receipt is confirmed.
+- The AMM is one TKA/TKB constant-product pool with a 0.3% fee; it has no factory or router. Treat all contracts as educational and unaudited; do not deploy them to mainnet or use real funds.
+- Solidity pragma is `0.8.24`. Do not change it without checking all contracts and the toolchain. Do not enable the optimizer without benchmarking and documenting the effect.
+- Validate external inputs and token transfer outcomes when changing contracts. Do not add `payable` to functions that do not accept native currency.
+- Add or update focused tests in `test/` for contract behavior. Existing tests use Hardhat 3 with TypeScript, Mocha, Ethers, and the configured toolbox; follow those patterns and the project-local Hardhat skills before adding another test stack.
 
-- Solidity pragma is `0.8.24`. Do not change it without checking all contracts.
-- The optimizer is off by default in `hardhat.config.ts`; enable it only if you benchmark the gas savings.
-- Do not add `payable` to functions that do not accept ETH.
-- Validate all external inputs in Solidity (zero-address checks, reserve checks).
-- Write a test for every new contract function before merging.
+## Data, configuration, and secrets
 
-## Commands
+- `lib/prisma.ts` is server-only and requires `DATABASE_URL`; never import it into a Client Component.
+- `NEXT_PUBLIC_*` variables are browser-visible. Use them only for public RPC URLs and contract addresses. Keep database credentials, private keys, and other secrets server-side.
+- Never commit `.env.local`, private keys, mnemonics, or other credentials. Use `.env.example` for safe variable names and placeholder values; do not copy secret values into examples or logs.
+- Sepolia deployment is wallet-signed in the browser. Do not introduce a server-side private-key deployment flow.
+- The local deploy script currently writes address variables to `frontend/.env.local`, while the Next.js app and `.env.example` are at the repository root. Check that mismatch before relying on generated local addresses; do not change it as an unrelated task.
 
-```bash
-# Frontend
-npm run dev          # Next.js dev server (Turbopack)
-npm run build        # Production build
-npm run lint         # ESLint
-npm run typecheck    # TypeScript check (no emit)
+## Testing and documentation
 
-# Contracts
-npm run compile      # Hardhat compile
-npm run test         # Hardhat Mocha tests
-npm run test:contracts
-
-# Utilities
-npm run clean        # Remove .next, artifacts, cache, coverage
-```
-=======
-contracts/        Solidity source files (*.sol) and unit tests (*.t.sol)
-test/             TypeScript integration tests and Solidity unit tests (*.sol)
-ignition/         Hardhat Ignition deployment modules
-scripts/          Standalone scripts run with `hardhat run`
-hardhat.config.ts
-```
-
-## Working in this project
-
-When writing or modifying tests, configuring `hardhat.config.ts`, or interacting with the network from TypeScript, invoke the **`hardhat`** skill. It covers Solidity and TypeScript testing, how to choose between them, `forge-std` cheatcodes, the `network.create()` API, `networkHelpers`, and the compile-then-typecheck workflow. The skill itself points to the matching `hardhat-toolbox-*` skill for toolbox-specific guidance (signers, contract interaction, assertions).
->>>>>>> origin/main
-
-## Docs
-
-- Hardhat 3 — https://hardhat.org/llms.txt
-<<<<<<< HEAD
-- ethers.js v6 — https://docs.ethers.org/v6/
-- wagmi v2 — https://wagmi.sh/
-- viem — https://viem.sh/
-- Next.js 16 — https://nextjs.org/docs
-- Tailwind CSS 4 — https://tailwindcss.com/docs
-=======
-- ethers.js — https://docs.ethers.org/v6/
->>>>>>> origin/main
+- Check `package.json` before relying on a script; run only scripts that exist in the valid manifest. For relevant changes, prefer the narrowest applicable lint, typecheck, build, compile, or contract-test command.
+- For Solidity tests, Hardhat configuration, or code using the Hardhat network API, follow `.agents/skills/hardhat/SKILL.md` and `.agents/skills/hardhat-toolbox-mocha-ethers/SKILL.md`. Project-local patterns take precedence over generic examples that require absent dependencies.
+- Update `README.md`, `QUICK_START.md`, `CONTRIBUTING.md`, or `SECURITY.md` when a change alters their documented behavior or setup. Keep claims evidence-based.
+- Follow `SECURITY.md` for vulnerability disclosure. Security review must be read-only unless the user separately requests a fix.
+- Do not commit, deploy, merge, or run persistent automation unless the user explicitly requests that action. Never overwrite unrelated or pre-existing work during cleanup or rollback.
