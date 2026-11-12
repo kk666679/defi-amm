@@ -21,7 +21,8 @@ async function saveFrontendAddresses(addresses: Record<string, string>) {
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  console.log("Deployer:", deployer.address);
+  const safeAddress = /^0x[0-9a-fA-F]{40}$/.test(deployer.address) ? deployer.address : "[invalid address]";
+  console.log("Deployer:", safeAddress);
 
   const A = await ethers.getContractFactory("TokenA");
   const tokenA = await A.deploy();

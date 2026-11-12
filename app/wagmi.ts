@@ -8,6 +8,23 @@ import {
   SEPOLIA_RPC_URL,
 } from "@/lib/constants";
 
+// Allowlist of trusted RPC URL prefixes to prevent SSRF
+const ALLOWED_RPC_PREFIXES = [
+  "http://127.0.0.1:",
+  "http://localhost:",
+  "https://rpc.sepolia.org",
+  "https://sepolia.infura.io",
+  "https://eth-sepolia",
+  "https://rpc2.sepolia.org",
+];
+
+function assertSafeRpcUrl(url: string, label: string): void {
+  const isAllowed = ALLOWED_RPC_PREFIXES.some((prefix) => url.startsWith(prefix));
+  if (!isAllowed) {
+    throw new Error(`Blocked untrusted RPC URL for ${label}: ${url}`);
+  }
+}
+
 export const hardhatLocal = defineChain({
   id: HARDHAT_CHAIN_ID,
   name: "Hardhat Local",
@@ -50,8 +67,8 @@ export function getConfig() {
     chains: [sepoliaWithPublicRpc, hardhatLocal, mainnet],
     connectors: [injected()],
     transports: {
-      [sepolia.id]: http(SEPOLIA_RPC_URL),
-      [hardhatLocal.id]: fallback([injectedWalletTransport, http(HARDHAT_RPC_URL)]),
+      [sepolia.id]: (assertSafeRpcUrl(SEPOLIA_RPC_URL, "Sepolia"), http(SEPOLIA_RPC_URL)),
+      [hardhatLocal.id]: (assertSafeRpcUrl(HARDHAT_RPC_URL, "Hardhat"), fallback([injectedWalletTransport, http(HARDHAT_RPC_URL)])),
       [mainnet.id]: http(),
     },
     ssr: true,

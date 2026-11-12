@@ -6,8 +6,8 @@ This guide gets the full stack running locally in under ten minutes.
 
 | Requirement | Minimum version | Notes |
 |---|---|---|
-| Node.js | 22 LTS | `.nvmrc` pins this version |
-| npm | 10+ | Bundled with Node 22 |
+| Node.js | 24.21.0 | Pinned in `.nvmrc` |
+| npm | 10+ | Bundled with Node.js |
 | MetaMask | Any current release | Browser extension |
 | Git | Any | To clone the repository |
 

@@ -220,6 +220,21 @@ npm run prisma:generate
 
 The focused contract tests are in `test/SimpleAMM.ts` (swap output, slippage reversion, reserve rollback) and `test/Counter.ts` (events and accumulated values).
 
+## CI/CD
+
+GitHub Actions runs linting, TypeScript checks, Solidity compilation, contract tests, and a production Next.js build on pull requests and pushes to `main`. CI uses the Node.js version pinned in `.nvmrc` and installs from the committed npm lockfile.
+
+Production deployment to Vercel is opt-in. To enable it, add the following repository configuration:
+
+| Name | Type | Purpose |
+|---|---|---|
+| `ENABLE_VERCEL_DEPLOYMENT` | Repository variable | Set to `true` to enable deployment |
+| `VERCEL_ORG_ID` | Repository variable | Vercel team or account ID |
+| `VERCEL_PROJECT_ID` | Repository variable | Vercel project ID |
+| `VERCEL_TOKEN` | Repository secret | Vercel deployment token |
+
+After configuration, a push to `main` deploys to production only after all CI checks pass. Set public contract addresses and RPC configuration in the Vercel project's environment settings as needed; never add credentials or private keys to GitHub variables, workflow files, or `NEXT_PUBLIC_*` settings.
+
 ## Security
 
 This is an educational demo. The contracts have not been audited and should not be deployed to mainnet or used with real funds. See [SECURITY.md](./SECURITY.md) for known limitations and vulnerability reporting.

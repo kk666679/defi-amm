@@ -1,8 +1,0 @@
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #555; }
-.sidebar-scroll::-webkit-scrollbar { display: none; }
-.sidebar-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-.docs-main { scroll-behavior: smooth; scroll-padding-top: 1rem; }
-.toc-item { transition: color 0.15s ease, border-color 0.15s ease; }
