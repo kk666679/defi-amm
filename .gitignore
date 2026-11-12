@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # dependencies
 /node_modules
 /.pnp
@@ -50,8 +49,6 @@ next-env.d.ts
 .vercel
 .env*
 
-.autoclaw/
-=======
 # ─── Dependencies ───
 node_modules/
 .pnp
@@ -85,4 +82,3 @@ frontend/next.config.ts.timestamp-*
 .idea/
 *.log
 npm-debug.log*
->>>>>>> origin/main

@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "runs": [
+    {
+      "ts": "2026-11-12T06:33:43.726Z",
+      "sessionsAnalyzed": 0,
+      "kept": 0,
+      "keptRate": 0,
+      "patternsLearned": 5,
+      "sources": [],
+      "estTokens": 0,
+      "gitEnriched": false
+    }
+  ],
+  "summary": {
+    "totalRuns": 1,
+    "totalSessions": 0,
+    "totalKept": 0,
+    "avgKeptRate": 0,
+    "totalPatterns": 5,
+    "tokens": {
+      "estimated": 0,
+      "real": 0,
+      "hasReal": false
+    },
+    "totalCostUsd": 0,
+    "lastRun": {
+      "ts": "2026-11-12T06:33:43.726Z",
+      "sessionsAnalyzed": 0,
+      "kept": 0,
+      "keptRate": 0,
+      "patternsLearned": 5,
+      "sources": [],
+      "estTokens": 0,
+      "gitEnriched": false
+    }
+  },
+  "trends": {
+    "keptRate": [
+      {
+        "ts": "2026-11-12T06:33:43.726Z",
+        "value": 0
+      }
+    ],
+    "patterns": [
+      {
+        "ts": "2026-11-12T06:33:43.726Z",
+        "value": 5
+      }
+    ],
+    "estTokens": [
+      {
+        "ts": "2026-11-12T06:33:43.726Z",
+        "value": 0
+      }
+    ],
+    "realTokens": [
+      {
+        "ts": "2026-11-12T06:33:43.726Z",
+        "value": 0
+      }
+    ]
+  }
+}

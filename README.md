@@ -222,7 +222,7 @@ The focused contract tests are in `test/SimpleAMM.ts` (swap output, slippage rev
 
 ## CI/CD
 
-GitHub Actions runs linting, TypeScript checks, Solidity compilation, contract tests, and a production Next.js build on pull requests and pushes to `main`. CI uses the Node.js version pinned in `.nvmrc` and installs from the committed npm lockfile.
+GitHub Actions runs linting, TypeScript checks, Solidity compilation, contract tests, and a production Next.js build on pull requests and pushes to `main`. CI uses the Node.js version pinned in `.nvmrc` and installs dependencies with npm. It uses `npm install` rather than `npm ci` because the current lockfile does not yet match `package.json`; reconcile `package-lock.json` before switching CI to the stricter clean install.
 
 Production deployment to Vercel is opt-in. To enable it, add the following repository configuration:
 
