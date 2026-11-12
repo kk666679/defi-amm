@@ -6,15 +6,6 @@ A local-first "second brain" for AutoClaw. It ingests past AI coding sessions
 from any tool (plus AutoClaw's own logs), distills what was kept vs. discarded,
 indexes your real codebase, and serves that context back to cut token waste.
 
-## Availability and source of truth
-
-The generated `.autoclaw/AGENT-ORIENTATION.md` is authoritative for the current
-workspace's core command and storage contract. This rule also describes optional
-extension commands and implementation status, but it is not proof that a command
-is installed in the current host. Before invoking any command, verify that the
-host exposes it; if it is absent, report that rather than simulating success.
-Do not edit generated orientation/style files or SQLite stores by hand.
-
 > **Status: core loop + Wave A implemented.** The module skeleton, configuration,
 > on-disk contract, and packaging are in place. The four core-loop commands
 > `/learn`, `/index-code`, `/retrieve`, and `/search` plus the Wave A commands

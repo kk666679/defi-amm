@@ -1150,8 +1150,7 @@ customModes:
       - edit
       - command
 
-# WARNING: AutoClaw detected mode slugs (kdream/autobuild/mateam) in this file but no "# AutoClaw modes" marker. The block below was appended without removing the existing entries; please de-duplicate manually if needed.
-
+# WARNING: AutoClaw detected mode slugs (kdream/autobuild/mateam) in this file but no "
 # AutoClaw modes
 customModes:
   - name: AutoBuild

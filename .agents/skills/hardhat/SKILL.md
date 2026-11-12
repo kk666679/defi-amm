@@ -7,6 +7,15 @@ metadata:
 
 # Hardhat 3
 
+## Repository-specific guidance
+
+This repository stores Solidity in `lib/contracts/` and its existing contract
+tests in `test/*.ts`, using Hardhat 3 with the Mocha/Ethers toolbox. Follow
+`AGENTS.md` and the companion `hardhat-toolbox-mocha-ethers` skill. Preserve
+those project patterns; do not introduce `.t.sol`, Foundry, or `forge-std`
+unless the user requests that test-stack change and the dependencies/config are
+deliberately added.
+
 This skill covers Hardhat 3 itself. The toolbox layer (clients, contract interaction, ecosystem-specific assertions) lives in companion skills — load whichever matches the project:
 
 - `@nomicfoundation/hardhat-toolbox-viem` → also load the **`hardhat-toolbox-viem`** skill.
